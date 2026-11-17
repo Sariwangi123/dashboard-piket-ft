@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Kalender jadwal mengajar, piket, dan tugas luar dosen Fakultas Teknik.">
+  <title>Kalender Dosen · Fakultas Teknik</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="schedule-model.cjs" defer></script>
+  <script src="dashboard.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">FT</span>
+        <div><strong>Fakultas Teknik</strong><small>Penjadwalan dosen</small></div>
+      </div>
+      <span class="demo" id="calendar-demo">Data contoh</span>
+      <a class="demo" id="calendar-admin" href="/admin" hidden>Dashboard admin</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="intro">
+      <p class="eyebrow">DASHBOARD AKADEMIK</p>
+      <h1>Kalender jadwal dosen</h1>
+      <p>Pantau jadwal mengajar, piket, dan tugas luar dalam satu kalender.</p>
+    </div>
+
+    <section class="stats" aria-label="Ringkasan bulan terpilih" id="stats"></section>
+
+    <details class="card lecturer-recap" id="lecturer-recap">
+      <summary class="agenda-summary recap-summary">
+        <span class="agenda-overview"><strong>Rekap tugas luar per dosen</strong></span>
+      </summary>
+      <div class="recap-body">
+        <div class="recap-period">
+          <label for="recap-through">Sampai tanggal</label>
+          <input id="recap-through" type="date" aria-describedby="recap-note">
+        </div>
+        <p class="muted" id="recap-note">Kedua kolom mengikuti batas tanggal. Kegiatan dihitung sekali per dosen berdasarkan jam selesai WIB. Tanggal mendatang menampilkan proyeksi dari jadwal.</p>
+        <table aria-label="Rekap tugas luar per dosen" aria-describedby="recap-note">
+          <thead>
+            <tr>
+              <th scope="col">Dosen</th>
+              <th scope="col" id="recap-month"></th>
+              <th scope="col" id="recap-total">Total hingga tanggal pilihan</th>
+            </tr>
+          </thead>
+          <tbody id="recap-rows"></tbody>
+        </table>
+      </div>
+    </details>
+
+    <div class="dashboard">
+      <section class="card calendar" aria-labelledby="month-title">
+        <div class="calendar-header">
+          <div><p class="eyebrow">KALENDER BULANAN</p><h2 id="month-title" aria-live="polite"></h2></div>
+          <div class="calendar-actions">
+            <label class="sr-only" for="lecturer-filter">Filter dosen</label>
+            <select id="lecturer-filter"></select>
+            <button id="today" class="outline">Hari ini</button>
+            <div class="arrows">
+              <button id="previous" aria-label="Bulan sebelumnya"><span aria-hidden="true">‹</span></button>
+              <button id="next" aria-label="Bulan berikutnya"><span aria-hidden="true">›</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="trip-nav" id="trip-navigation" hidden>
+          <label for="trip-month">Bulan tugas luar</label>
+          <select id="trip-month"></select>
+        </div>
+        <div class="weekdays" aria-hidden="true">
+          <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span>
+        </div>
+        <div class="days" id="days" aria-label="Tanggal dalam kalender"></div>
+        <div class="legend" aria-label="Keterangan warna">
+          <span><i class="teach"></i>Mengajar</span>
+          <span><i class="trip"></i>Kegiatan tugas luar seluruh dosen</span>
+        </div>
+      </section>
+
+      <aside class="card detail" aria-labelledby="day-title">
+        <p class="eyebrow">TANGGAL DIPILIH</p>
+        <h2 id="day-title" aria-live="polite"></h2>
+        <p class="muted" id="day-count"></p>
+        <div class="day-trip-summary trip">
+          <strong>Tugas luar seluruh dosen</strong>
+          <p id="day-trip-count" aria-live="polite"></p>
+        </div>
+        <div class="agenda" id="agenda"></div>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

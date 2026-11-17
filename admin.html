@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Penjadwalan · Fakultas Teknik</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="schedule-model.cjs" defer></script>
+  <script src="admin-api.js" defer></script>
+  <script src="admin.js" defer></script>
+</head>
+<body>
+  <div id="ft-admin">
+    <header class="admin-header">
+      <span class="admin-mark" aria-hidden="true">FT</span>
+      <div><strong>Fakultas Teknik</strong><small>Administrasi akademik</small></div>
+      <a class="admin-link" href="/">Kalender dosen ↗</a>
+    </header>
+    <main class="admin-main">
+      <div class="admin-intro">
+        <span class="admin-kicker">RUANG ADMIN</span>
+        <h1>Kelola jadwal dosen</h1>
+        <p>Catat jadwal mengajar, piket, dan penugasan luar dalam satu tempat.</p>
+      </div>
+      <div class="admin-layout">
+        <section class="admin-panel" aria-labelledby="admin-entry-title">
+          <h2 id="admin-entry-title">Tambah jadwal</h2>
+          <div class="admin-types" aria-label="Kategori jadwal">
+            <button type="button" data-kind="teach" aria-pressed="true">Mengajar</button>
+            <button type="button" data-kind="trip" aria-pressed="false">Tugas luar</button>
+            <button type="button" data-kind="duty" aria-pressed="false">Piket</button>
+          </div>
+          <form id="admin-schedule">
+            <fieldset disabled>
+              <div id="admin-schedule-lecturers" class="admin-schedule-lecturers">
+                <label>Dosen <select name="lecturerId" required></select></label>
+              </div>
+              <button type="button" id="admin-add-schedule-lecturer" class="admin-add-schedule-lecturer">+ Tambah dosen ke jadwal</button>
+              <label><span id="admin-title-label">Mata kuliah</span>
+                <input name="title" maxlength="120" placeholder="Contoh: Matematika Teknik" required>
+              </label>
+              <div class="admin-pair" id="admin-teaching-details">
+                <label>Prodi tujuan
+                  <input name="teachingProgram" list="admin-programs" maxlength="120" placeholder="Default prodi asal dosen">
+                  <datalist id="admin-programs"></datalist>
+                </label>
+                <label>Semester mahasiswa
+                  <input name="semester" type="number" min="1" step="1" placeholder="Contoh: 3">
+                </label>
+              </div>
+              <div class="admin-pair">
+                <label><span id="admin-date-label">Tanggal pertama</span><input type="date" name="date" required></label>
+                <label id="admin-repeat">Pengulangan
+                  <select name="repeat"><option value="once">Sekali</option><option value="weekly">Setiap minggu</option></select>
+                </label>
+              </div>
+              <label id="admin-through" hidden>Ulangi hingga <input type="date" name="through" disabled></label>
+              <div class="admin-pair">
+                <label>Jam mulai (WIB) <input type="time" name="start" value="09:00" required></label>
+                <label>Jam selesai (WIB) <input type="time" name="end" value="10:30" required></label>
+              </div>
+              <div class="admin-conflicts" id="admin-conflicts" aria-live="polite" hidden></div>
+              <button class="admin-primary" type="submit">Simpan jadwal</button>
+            </fieldset>
+            <p class="admin-status" id="admin-schedule-status" role="status"></p>
+          </form>
+        </section>
+        <div class="admin-aside">
+          <section class="admin-panel" aria-labelledby="admin-import-title">
+            <h2 id="admin-import-title">Impor Excel</h2>
+            <div class="admin-templates">
+              <a href="/templates/template-jadwal-mengajar.xlsx" download>Template jadwal mengajar</a>
+              <a href="/templates/template-tugas-luar.xlsx" download>Template tugas luar</a>
+            </div>
+            <p class="admin-import-hint">Unduh template setelah <a id="admin-directory-link" href="#admin-directory">daftar dosen</a> lengkap. Pilih nama dan prodi dari dropdown di Excel. Gunakan satu dosen per baris.</p>
+            <form id="admin-import">
+              <fieldset disabled>
+                <label>Jenis jadwal
+                  <select name="type">
+                    <option value="teach">Mengajar</option>
+                    <option value="trip">Tugas luar</option>
+                  </select>
+                </label>
+                <label>File Excel (.xlsx) <input name="workbook" type="file" accept=".xlsx" required></label>
+                <button class="admin-primary" type="submit">Impor jadwal</button>
+              </fieldset>
+              <p class="admin-status" id="admin-import-status" role="status"></p>
+              <ul class="admin-import-errors" id="admin-import-errors" hidden></ul>
+            </form>
+          </section>
+          <details class="admin-panel" id="admin-directory">
+            <summary><strong>Daftar dosen</strong> <span id="admin-lecturer-count"></span></summary>
+            <form id="admin-lecturer">
+              <fieldset disabled>
+                <label>Nama dosen <input name="name" maxlength="120" required></label>
+                <label>Program studi <input name="program" maxlength="120" required></label>
+                <button class="admin-primary" type="submit">Simpan dosen</button>
+              </fieldset>
+              <p class="admin-status" id="admin-lecturer-status" role="status"></p>
+            </form>
+            <ul class="admin-directory-list" id="admin-directory-list" aria-label="Dosen terdaftar"></ul>
+          </details>
+          <section class="admin-panel" aria-labelledby="admin-list-title">
+            <div class="admin-list-header">
+              <h2 id="admin-list-title">Jadwal tersimpan</h2>
+              <span id="admin-schedule-count" class="admin-count" role="status"></span>
+            </div>
+            <div class="admin-filters">
+              <label>Cari dosen, hari, atau agenda
+                <input type="search" id="admin-search" placeholder="Contoh: Bu Rina, Selasa, atau rapat">
+              </label>
+              <div class="admin-pair">
+                <label>Tanggal <input type="date" id="admin-search-date"></label>
+                <label>Kategori
+                  <select id="admin-filter">
+                    <option value="">Semua kategori</option>
+                    <option value="teach">Mengajar</option>
+                    <option value="trip">Tugas luar</option>
+                    <option value="duty">Piket</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <p class="admin-status" id="admin-edit-status" role="status"></p>
+            <ul class="admin-records" id="admin-records"></ul>
+            <button type="button" id="admin-more" hidden>Tampilkan lebih banyak</button>
+          </section>
+        </div>
+      </div>
+    </main>
+    <template id="admin-schedule-lecturer-row">
+      <div class="admin-schedule-lecturer-row">
+        <label>Dosen tambahan <select name="lecturerId" required></select></label>
+        <button type="button" aria-label="Hapus dosen tambahan">Hapus</button>
+      </div>
+    </template>
+    <template id="admin-date-editor">
+      <details class="admin-date-editor">
+        <summary>Ubah tanggal</summary>
+        <form>
+          <label>Tanggal baru <input type="date" name="date" required></label>
+          <p class="admin-conflicts" aria-live="polite" hidden></p>
+          <div class="admin-edit-actions">
+            <button class="admin-primary" type="submit">Simpan tanggal</button>
+            <button type="button">Batal</button>
+          </div>
+          <p class="admin-status admin-error" role="status"></p>
+        </form>
+      </details>
+    </template>
+    <template id="admin-participants-editor">
+      <details class="admin-date-editor">
+        <summary>Ubah peserta</summary>
+        <form>
+          <fieldset class="admin-participants">
+            <legend>Centang dosen yang ikut tugas luar ini</legend>
+            <div class="admin-participant-list"></div>
+          </fieldset>
+          <p class="admin-conflicts" aria-live="polite" hidden></p>
+          <div class="admin-edit-actions">
+            <button class="admin-primary" type="submit">Simpan peserta</button>
+            <button type="button">Batal</button>
+          </div>
+          <p class="admin-status admin-error" role="status"></p>
+        </form>
+      </details>
+    </template>
+  </div>
+</body>
+</html>
