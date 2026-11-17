@@ -101,13 +101,18 @@ select, input, .outline, .arrows button {
 .day-trip-summary { margin-top: 10px; padding: 8px 10px; border-radius: 7px; background: var(--tint); color: var(--ink); font-size: .83rem; }
 .day-trip-summary p { margin-top: 2px; }
 .agenda { display: grid; gap: 8px; margin-top: 12px; }
+.agenda-group { border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.agenda-group > .agenda-summary { background: var(--tint); color: var(--ink); font-size: .88rem; }
+.agenda-group > .agenda-summary:hover { filter: brightness(.97); }
+.agenda-group-content { display: grid; gap: 6px; padding: 7px; }
+.agenda-count { flex: none; font-size: .76rem; color: var(--muted); }
 .agenda-item { border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; }
 .agenda-summary { display: flex; align-items: center; gap: 9px; padding: 8px 10px; list-style: none; cursor: pointer; border-radius: 6px; }
 .agenda-summary::-webkit-details-marker { display: none; }
 .agenda-summary:hover { background: #f6f8fc; }
 .agenda-summary:focus-visible { outline: 2px solid #2c67c9; outline-offset: -2px; }
 .agenda-summary::after { content: ''; flex: 0 0 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; color: var(--muted); transform: rotate(45deg); margin: -3px 2px 0 0; }
-.agenda-item[open] > .agenda-summary::after { transform: rotate(225deg); margin-top: 4px; }
+:is(.agenda-item, .agenda-group)[open] > .agenda-summary::after { transform: rotate(225deg); margin-top: 4px; }
 .lecturer-recap { margin-bottom: 18px; }
 .recap-summary { padding: 11px 16px; }
 .lecturer-recap[open] > .recap-summary::after { transform: rotate(225deg); margin-top: 4px; }
@@ -120,8 +125,7 @@ select, input, .outline, .arrows button {
 .recap-body td { font-variant-numeric: tabular-nums; }
 .recap-body small { display: block; color: var(--muted); font-weight: 400; }
 .agenda-overview { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.agenda-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-.program-tag {
+.agenda-program {
   --tint: hsl(var(--program-hue) 70% 91%);
   --ink: hsl(var(--program-hue) 78% 23%);
 }

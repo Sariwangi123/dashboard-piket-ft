@@ -93,22 +93,26 @@ function compareAgenda([a], [b]) {
   if (byCategory || a.type !== 'teach') return byCategory;
   const aProgram = activityText(classProgram(a));
   const bProgram = activityText(classProgram(b));
+  const aSemester = a.semester ?? 0;
+  const bSemester = b.semester ?? 0;
   return (programOrder.get(aProgram) ?? programOrder.size) - (programOrder.get(bProgram) ?? programOrder.size)
-    || aProgram.localeCompare(bProgram, 'id');
+    || aProgram.localeCompare(bProgram, 'id')
+    || Number(!aSemester) - Number(!bSemester)
+    || aSemester - bSemester
+    || a.start.localeCompare(b.start);
 }
 
-function programTag(program) {
+function programHue(program) {
   const key = activityText(program);
-  const hue = programHues.get(key) ?? [...key].reduce((value, character) =>
+  return programHues.get(key) ?? [...key].reduce((value, character) =>
     (value * 31 + character.codePointAt(0)) % 360, 0);
-  return `<span class="tag program-tag" style="--program-hue: ${hue}">Mengajar di Prodi ${escapeHtml(program)}</span>`;
 }
 
 function activityKey(event) {
   const title = activityText(event.title);
   if (event.type === 'trip') return JSON.stringify(['trip', event.date, title]);
   if (event.type === 'teach' && classProgram(event)) {
-    return JSON.stringify(['teach', title, activityText(classProgram(event)), event.start, event.end]);
+    return JSON.stringify(['teach', title, activityText(classProgram(event)), event.semester ?? null, event.start, event.end]);
   }
   return event;
 }
@@ -211,6 +215,48 @@ function renderMonth() {
     </div>`).join('');
 }
 
+function agendaItem(members, schedule) {
+  const [first] = members;
+  const sharedTime = members.every(({ start, end }) => start === first.start && end === first.end);
+  const semester = first.type === 'teach' && first.semester;
+  const metadata = [
+    semester ? 'Semester ' + semester : '',
+    sharedTime ? `${first.start}–${first.end} WIB` : 'Jam berbeda per dosen',
+    new Set(members.map(lecturerKey)).size + ' dosen',
+  ].filter(Boolean).join(' · ');
+  let hasConflict = false;
+  const people = members.map((event) => {
+    const hours = sharedTime ? '' : ` · ${event.start}–${event.end} WIB`;
+    const homeProgram = event.type === 'teach' && event.program ? ` · Prodi asal ${escapeHtml(event.program)}` : '';
+    const conflicts = conflictsFor(event, schedule);
+    if (conflicts.length) hasConflict = true;
+    const warnings = conflicts.map((conflict) => `<p class="warning">${conflictLabel(conflict)} · ${overlapTime(conflict, event)}</p>`).join('');
+    return `<li><p>${escapeHtml(event.lecturer)}${homeProgram}${hours}</p>${warnings}</li>`;
+  }).join('');
+  const conflictTag = hasConflict ? '<span class="tag conflict">Bentrok</span>' : '';
+  return `<details class="agenda-item ${first.type}" name="daily-agenda">
+      <summary class="agenda-summary">
+        <span class="agenda-overview">
+          ${conflictTag}
+          <strong>${escapeHtml(first.title)}</strong>
+          <span class="agenda-meta">${escapeHtml(metadata)}</span>
+        </span>
+      </summary>
+      <div class="agenda-detail"><ul class="agenda-members">${people}</ul></div>
+    </details>`;
+}
+
+function agendaGroup({ type, label, name, count, content, program }) {
+  const style = program ? ` style="--program-hue: ${programHue(program)}"` : '';
+  return `<details class="agenda-group ${program ? 'agenda-program' : type}" name="${name}"${style}>
+    <summary class="agenda-summary">
+      <strong class="agenda-overview">${escapeHtml(label)}</strong>
+      <span class="agenda-count">${count} jadwal</span>
+    </summary>
+    <div class="agenda-group-content">${content}</div>
+  </details>`;
+}
+
 function renderDay() {
   const schedule = scheduleFor(selected);
   const totals = tripTotals(schedule);
@@ -219,38 +265,19 @@ function renderDay() {
   byId('day-title').textContent = dayFormat.format(selected);
   byId('day-count').textContent = `${activities.length} jadwal tercatat`;
   byId('day-trip-count').textContent = `${totals.activities} kegiatan · ${totals.assignments} penugasan`;
-  byId('agenda').innerHTML = activities.map((members) => {
-    const [first] = members;
-    const sharedTime = members.every(({ start, end }) => start === first.start && end === first.end);
-    const sharedSemester = first.type === 'teach' && first.semester
-      && members.every(({ semester }) => semester === first.semester);
-    const metadata = [
-      sharedSemester ? 'Semester ' + first.semester : '',
-      sharedTime ? `${first.start}–${first.end} WIB` : 'Jam berbeda per dosen',
-      new Set(members.map(lecturerKey)).size + ' dosen',
-    ].filter(Boolean).join(' · ');
-    let hasConflict = false;
-    const people = members.map((event) => {
-      const hours = sharedTime ? '' : ` · ${event.start}–${event.end} WIB`;
-      const semester = event.type === 'teach' && event.semester && !sharedSemester ? ` · Semester ${event.semester}` : '';
-      const homeProgram = event.type === 'teach' && event.program ? ` · Prodi asal ${escapeHtml(event.program)}` : '';
-      const conflicts = conflictsFor(event, schedule);
-      if (conflicts.length) hasConflict = true;
-      const warnings = conflicts.map((conflict) => `<p class="warning">${conflictLabel(conflict)} · ${overlapTime(conflict, event)}</p>`).join('');
-      return `<li><p>${escapeHtml(event.lecturer)}${homeProgram}${semester}${hours}</p>${warnings}</li>`;
-    }).join('');
-    const conflictTag = hasConflict ? '<span class="tag conflict">Bentrok</span>' : '';
-    const programLabel = first.type === 'teach' && classProgram(first) ? programTag(classProgram(first)) : '';
-    return `<details class="agenda-item ${first.type}" name="daily-agenda">
-      <summary class="agenda-summary">
-        <span class="agenda-overview">
-          <span class="agenda-tags"><span class="tag">${categories[first.type]}</span>${programLabel}${conflictTag}</span>
-          <strong>${escapeHtml(first.title)}</strong>
-          <span class="agenda-meta">${escapeHtml(metadata)}</span>
-        </span>
-      </summary>
-      <div class="agenda-detail"><ul class="agenda-members">${people}</ul></div>
-    </details>`;
+  const renderItems = (group) => group.map((members) => agendaItem(members, schedule)).join('');
+  const byType = Map.groupBy(activities, ([first]) => first.type);
+  byId('agenda').innerHTML = [...byType].map(([type, group]) => {
+    const content = type === 'teach'
+      ? [...Map.groupBy(group, ([first]) => activityText(classProgram(first))).values()].map((classes) => {
+        const program = classProgram(classes[0][0]);
+        return agendaGroup({
+          type, label: program ? 'Prodi ' + program : 'Prodi belum tercatat',
+          name: 'daily-agenda-program', count: classes.length, content: renderItems(classes), program,
+        });
+      }).join('')
+      : renderItems(group);
+    return agendaGroup({ type, label: categories[type], name: 'daily-agenda-category', count: group.length, content });
   }).join('') || '<p class="muted empty-agenda">Belum ada jadwal tercatat pada tanggal ini.</p>';
 }
 
